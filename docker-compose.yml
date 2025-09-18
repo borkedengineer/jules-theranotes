@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - theranotes-network
+
+networks:
+  theranotes-network:
+    driver: bridge
+
+volumes:
+  frontend_node_modules:
