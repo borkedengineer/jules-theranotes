@@ -4,10 +4,10 @@ Next.js React application for therapy session note-taking with audio recording c
 
 ## Features
 
-- 🎤 **Audio Recording**: High-quality WAV recording using Web Audio API
+- 🎤 **Audio Recording**: High-quality audio recording using MediaRecorder API
 - ⏱️ **Real-time Timer**: Visual feedback during recording
 - 🎵 **Playback Controls**: Review recordings before processing
-- 📁 **File Management**: Download recordings as WAV files
+- 📁 **File Management**: Download recordings as MP3/MP4 audio files
 - 🔄 **Backend Integration**: Upload audio for transcription processing
 - 🎨 **Modern UI**: Built with ShadCN components and Tailwind CSS
 - 📱 **Responsive Design**: Works on desktop and mobile devices
@@ -16,7 +16,7 @@ Next.js React application for therapy session note-taking with audio recording c
 
 - **Framework**: Next.js 14 with TypeScript
 - **Styling**: Tailwind CSS + ShadCN UI components
-- **Audio**: Web Audio API for high-quality WAV recording
+- **Audio**: MediaRecorder API for high-quality audio recording
 - **Icons**: Lucide React
 - **State Management**: React hooks
 
@@ -82,10 +82,10 @@ frontend/
 
 Main component handling audio recording functionality:
 
-- **Recording**: Uses Web Audio API for high-quality WAV recording
+- **Recording**: Uses MediaRecorder API for high-quality audio recording
 - **Timer**: Real-time recording duration display
 - **Playback**: Built-in audio player for review
-- **Download**: Export recordings as WAV files
+- **Download**: Export recordings as MP3/MP4 audio files
 - **Upload**: Integration with backend API
 
 ### UI Components
@@ -100,10 +100,10 @@ Built with ShadCN UI for consistent design:
 
 ### Technical Implementation
 
-- **Web Audio API**: Captures audio data in real-time
-- **WAV Encoding**: Custom WAV encoder for 16-bit PCM format
-- **Quality**: 44.1kHz sample rate with echo cancellation
-- **File Format**: Standard WAV files for maximum compatibility
+- **MediaRecorder API**: Captures audio data in real-time
+- **Audio Encoding**: MP4/AAC or WebM/Opus encoding for optimal compression
+- **Quality**: 44.1kHz sample rate with echo cancellation and noise suppression
+- **File Format**: MP3/MP4 audio files for backend processing compatibility
 
 ### Browser Compatibility
 
@@ -116,7 +116,7 @@ Built with ShadCN UI for consistent design:
 
 The frontend communicates with the backend API for:
 
-- **Audio Upload**: Send WAV files for transcription
+- **Audio Upload**: Send MP3/MP4 audio files for transcription
 - **Progress Tracking**: Monitor upload and processing status
 - **Error Handling**: Graceful error handling and user feedback
 
@@ -202,4 +202,3 @@ npm run test:coverage
 ## License
 
 This project is licensed under the MIT License.
-

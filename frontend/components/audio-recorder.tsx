@@ -31,10 +31,6 @@ export default function AudioRecorder({ onUpload }: AudioRecorderProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
-  const audioDataRef = useRef<Float32Array[]>([]);
 
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
@@ -45,54 +41,23 @@ export default function AudioRecorder({ onUpload }: AudioRecorderProps) {
       .padStart(2, "0")}`;
   };
 
-  // Convert Float32Array to WAV format
-  const floatTo16BitPCM = (float32Array: Float32Array): Int16Array => {
-    const buffer = new ArrayBuffer(float32Array.length * 2);
-    const view = new DataView(buffer);
-    let offset = 0;
-    for (let i = 0; i < float32Array.length; i++, offset += 2) {
-      let s = Math.max(-1, Math.min(1, float32Array[i]));
-      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  // Get the best supported audio format for recording
+  const getSupportedMimeType = (): string => {
+    const types = [
+      'audio/mp4; codecs="mp4a.40.2"', // MP4/AAC - closest to MP3
+      "audio/webm; codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+      "audio/ogg; codecs=opus",
+      "audio/ogg",
+    ];
+
+    for (const type of types) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        return type;
+      }
     }
-    return new Int16Array(buffer);
-  };
-
-  const writeString = (view: DataView, offset: number, string: string) => {
-    for (let i = 0; i < string.length; i++) {
-      view.setUint8(offset + i, string.charCodeAt(i));
-    }
-  };
-
-  const encodeWAV = (
-    samples: Float32Array,
-    sampleRate: number = 44100
-  ): ArrayBuffer => {
-    const length = samples.length;
-    const buffer = new ArrayBuffer(44 + length * 2);
-    const view = new DataView(buffer);
-
-    // WAV header
-    writeString(view, 0, "RIFF");
-    view.setUint32(4, 36 + length * 2, true);
-    writeString(view, 8, "WAVE");
-    writeString(view, 12, "fmt ");
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeString(view, 36, "data");
-    view.setUint32(40, length * 2, true);
-
-    // Convert float samples to 16-bit PCM
-    const pcmData = floatTo16BitPCM(samples);
-    for (let i = 0; i < pcmData.length; i++) {
-      view.setInt16(44 + i * 2, pcmData[i], true);
-    }
-
-    return buffer;
+    return "audio/webm"; // fallback
   };
 
   // Start recording
@@ -108,29 +73,36 @@ export default function AudioRecorder({ onUpload }: AudioRecorderProps) {
 
       streamRef.current = stream;
 
-      // Create AudioContext for WAV recording
-      const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)({
-        sampleRate: 44100,
+      // Get the best supported MIME type
+      const mimeType = getSupportedMimeType();
+      console.log("Using MIME type:", mimeType);
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: mimeType,
       });
-      audioContextRef.current = audioContext;
 
-      const source = audioContext.createMediaStreamSource(stream);
-      sourceRef.current = source;
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
 
-      // Create ScriptProcessorNode to capture audio data
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
-      processorRef.current = processor;
-      audioDataRef.current = [];
-
-      processor.onaudioprocess = (event) => {
-        const inputData = event.inputBuffer.getChannelData(0);
-        audioDataRef.current.push(new Float32Array(inputData));
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
       };
 
-      source.connect(processor);
-      processor.connect(audioContext.destination);
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: mimeType });
+        setAudioBlob(blob);
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
 
+        // Clean up stream
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+        }
+      };
+
+      mediaRecorder.start(100); // Collect data every 100ms
       setIsRecording(true);
       setRecordingTime(0);
 
@@ -146,52 +118,12 @@ export default function AudioRecorder({ onUpload }: AudioRecorderProps) {
 
   // Stop recording
   const stopRecording = () => {
-    if (isRecording) {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
       setIsRecording(false);
 
       if (timerRef.current) {
         clearInterval(timerRef.current);
-      }
-
-      // Stop audio processing
-      if (processorRef.current) {
-        processorRef.current.disconnect();
-      }
-      if (sourceRef.current) {
-        sourceRef.current.disconnect();
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-
-      // Convert audio data to WAV
-      if (audioDataRef.current.length > 0) {
-        // Calculate total length
-        const totalLength = audioDataRef.current.reduce(
-          (acc, chunk) => acc + chunk.length,
-          0
-        );
-
-        // Create a single Float32Array with all audio data
-        const audioData = new Float32Array(totalLength);
-        let offset = 0;
-        for (const chunk of audioDataRef.current) {
-          audioData.set(chunk, offset);
-          offset += chunk.length;
-        }
-
-        // Encode as WAV
-        const wavBuffer = encodeWAV(audioData, 44100);
-        const wavBlob = new Blob([wavBuffer], { type: "audio/wav" });
-
-        setAudioBlob(wavBlob);
-        const url = URL.createObjectURL(wavBlob);
-        setAudioUrl(url);
-      }
-
-      // Clean up stream
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
       }
     }
   };
@@ -271,11 +203,24 @@ export default function AudioRecorder({ onUpload }: AudioRecorderProps) {
     const link = document.createElement("a");
     link.href = audioUrl;
 
-    // Since we're now using WAV format, always use .wav extension
+    // Determine file extension based on MIME type
+    const mimeType = audioBlob.type;
+    let extension = "mp3"; // Default to mp3
+
+    if (mimeType.includes("mp4")) {
+      extension = "m4a"; // MP4 audio files
+    } else if (mimeType.includes("webm")) {
+      extension = "webm";
+    } else if (mimeType.includes("ogg")) {
+      extension = "ogg";
+    } else if (mimeType.includes("wav")) {
+      extension = "wav";
+    }
+
     link.download = `recording-${new Date()
       .toISOString()
       .slice(0, 19)
-      .replace(/:/g, "-")}.wav`;
+      .replace(/:/g, "-")}.${extension}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -289,15 +234,6 @@ export default function AudioRecorder({ onUpload }: AudioRecorderProps) {
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      if (processorRef.current) {
-        processorRef.current.disconnect();
-      }
-      if (sourceRef.current) {
-        sourceRef.current.disconnect();
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
       }
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);

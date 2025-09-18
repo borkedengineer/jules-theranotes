@@ -12,10 +12,10 @@ This project follows a microservices architecture with clear separation of conce
 
 ## Features
 
-- 🎤 **Audio Recording**: High-quality WAV recording using Web Audio API
+- 🎤 **Audio Recording**: High-quality audio recording using MediaRecorder API
 - ⏱️ **Real-time Timer**: Visual feedback during recording with timer display
 - 🎵 **Playback Controls**: Review recordings with play/pause functionality
-- 📁 **File Management**: Download recordings as WAV files
+- 📁 **File Management**: Download recordings as MP3/MP4 audio files
 - 🔄 **AI Processing**: Speech-to-text transcription and NLP data extraction
 - 📄 **Document Generation**: Create Word/PDF documents from structured data
 - 🎨 **Modern UI**: Built with ShadCN components and Tailwind CSS
@@ -28,7 +28,7 @@ This project follows a microservices architecture with clear separation of conce
 
 - **Framework**: Next.js 14 with TypeScript
 - **Styling**: Tailwind CSS + ShadCN UI components
-- **Audio**: Web Audio API for high-quality WAV recording
+- **Audio**: MediaRecorder API for high-quality audio recording
 - **Icons**: Lucide React
 
 ### Backend
