@@ -2,41 +2,36 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Mic, Square, Play, Pause, Upload, Download } from "lucide-react";
+import { Mic, Square, Play, Pause, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface AudioRecorderProps {
-  onUpload?: (audioBlob: Blob) => void;
-}
+interface AudioRecorderProps {}
 
-export default function AudioRecorder({ onUpload }: AudioRecorderProps) {
+export default function AudioRecorder({}: AudioRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
-  // Format time as MM:SS
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
+  // Format time as HH:MM:SS.ssss
+  const formatTime = (milliseconds: number) => {
+    const totalSeconds = milliseconds / 1000;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const ms = Math.floor((milliseconds % 1000) / 10); // Show centiseconds
+
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${ms
       .toString()
       .padStart(2, "0")}`;
   };
@@ -105,11 +100,15 @@ export default function AudioRecorder({ onUpload }: AudioRecorderProps) {
       mediaRecorder.start(100); // Collect data every 100ms
       setIsRecording(true);
       setRecordingTime(0);
+      startTimeRef.current = Date.now();
 
-      // Start timer
+      // Start high-precision timer
       timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
+        if (startTimeRef.current) {
+          const elapsed = Date.now() - startTimeRef.current;
+          setRecordingTime(elapsed);
+        }
+      }, 10); // Update every 10ms for smooth display
     } catch (error) {
       console.error("Error accessing microphone:", error);
       alert("Unable to access microphone. Please check permissions.");
@@ -161,41 +160,6 @@ export default function AudioRecorder({ onUpload }: AudioRecorderProps) {
     };
   }, [audioUrl]);
 
-  // Upload audio to backend
-  const uploadAudio = async () => {
-    if (!audioBlob || !onUpload) return;
-
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    try {
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      // Call the upload handler
-      await onUpload(audioBlob);
-
-      setUploadProgress(100);
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 500);
-    } catch (error) {
-      console.error("Upload failed:", error);
-      setIsUploading(false);
-      setUploadProgress(0);
-      alert("Upload failed. Please try again.");
-    }
-  };
-
   // Download audio file
   const downloadAudio = () => {
     if (!audioBlob || !audioUrl) return;
@@ -242,113 +206,105 @@ export default function AudioRecorder({ onUpload }: AudioRecorderProps) {
   }, [audioUrl]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mic className="h-5 w-5" />
-            Audio Recorder
-          </CardTitle>
-          <CardDescription>
-            Record your session summary. Click start to begin recording.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Timer Display */}
-          <div className="text-center">
-            <div
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md mx-auto">
+        {/* Timer Display */}
+        <div className="text-center mb-8">
+          <div
+            className={cn(
+              "text-6xl md:text-7xl font-mono font-bold transition-colors mb-4",
+              isRecording
+                ? "text-red-500 dark:text-red-400"
+                : audioUrl
+                ? "text-green-500 dark:text-green-400"
+                : "text-muted-foreground"
+            )}
+          >
+            {formatTime(recordingTime)}
+          </div>
+
+          {isRecording && (
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-3 h-3 bg-red-500 dark:bg-red-400 rounded-full animate-pulse"></div>
+              <span className="text-lg text-red-500 dark:text-red-400 font-medium">
+                Recording...
+              </span>
+            </div>
+          )}
+
+          {audioUrl && !isRecording && (
+            <p className="text-lg text-green-500 dark:text-green-400 font-medium">
+              Recording Complete
+            </p>
+          )}
+        </div>
+
+        {/* Main Action Button */}
+        <div className="flex justify-center mb-8">
+          {!audioUrl ? (
+            // Recording State
+            <Button
+              onClick={isRecording ? stopRecording : startRecording}
+              size="lg"
               className={cn(
-                "text-4xl font-mono font-bold transition-colors",
-                isRecording ? "text-red-500" : "text-gray-500"
+                "w-32 h-32 rounded-full text-lg font-semibold transition-all",
+                isRecording
+                  ? "bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700"
+                  : "bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
               )}
             >
-              {formatTime(recordingTime)}
-            </div>
-            {isRecording && (
-              <div className="flex items-center justify-center gap-2 mt-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-sm text-red-500">Recording...</span>
-              </div>
-            )}
-          </div>
-
-          {/* Recording Controls */}
-          <div className="flex justify-center gap-4">
-            {!isRecording ? (
-              <Button
-                onClick={startRecording}
-                size="lg"
-                className="bg-red-500 hover:bg-red-600 text-white"
-              >
-                <Mic className="h-5 w-5 mr-2" />
-                Start Recording
-              </Button>
-            ) : (
-              <Button onClick={stopRecording} size="lg" variant="destructive">
-                <Square className="h-5 w-5 mr-2" />
-                Stop Recording
-              </Button>
-            )}
-          </div>
-
-          {/* Playback Controls */}
-          {audioUrl && (
-            <div className="space-y-4">
-              <div className="flex justify-center gap-4">
-                <Button onClick={togglePlayback} variant="outline" size="lg">
-                  {isPlaying ? (
-                    <Pause className="h-5 w-5 mr-2" />
-                  ) : (
-                    <Play className="h-5 w-5 mr-2" />
-                  )}
-                  {isPlaying ? "Pause" : "Play"}
-                </Button>
-
-                <Button onClick={downloadAudio} variant="outline" size="lg">
-                  <Download className="h-5 w-5 mr-2" />
-                  Download
-                </Button>
-              </div>
-
-              <audio
-                ref={audioRef}
-                src={audioUrl}
-                className="w-full"
-                controls
-              />
-            </div>
-          )}
-
-          {/* Upload Section */}
-          {audioBlob && onUpload && (
-            <div className="space-y-4">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-2">
-                  Ready to process your recording
-                </p>
-                <Button
-                  onClick={uploadAudio}
-                  disabled={isUploading}
-                  size="lg"
-                  className="w-full"
-                >
-                  <Upload className="h-5 w-5 mr-2" />
-                  {isUploading ? "Uploading..." : "Upload for Processing"}
-                </Button>
-              </div>
-
-              {isUploading && (
-                <div className="space-y-2">
-                  <Progress value={uploadProgress} className="w-full" />
-                  <p className="text-sm text-center text-muted-foreground">
-                    Uploading... {uploadProgress}%
-                  </p>
-                </div>
+              {isRecording ? (
+                <Square className="h-8 w-8" />
+              ) : (
+                <Mic className="h-8 w-8" />
               )}
+            </Button>
+          ) : (
+            // Playback State
+            <div className="flex gap-4">
+              <Button
+                onClick={togglePlayback}
+                size="lg"
+                variant="outline"
+                className="w-20 h-20 rounded-full"
+              >
+                {isPlaying ? (
+                  <Pause className="h-6 w-6" />
+                ) : (
+                  <Play className="h-6 w-6" />
+                )}
+              </Button>
+
+              <Button
+                onClick={downloadAudio}
+                size="lg"
+                className="w-20 h-20 rounded-full bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
+              >
+                <Download className="h-6 w-6" />
+              </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Instructions */}
+        <div className="text-center">
+          {!audioUrl ? (
+            <p className="text-muted-foreground">
+              {isRecording
+                ? "Click the stop button to end recording"
+                : "Click the microphone to start recording"}
+            </p>
+          ) : (
+            <p className="text-muted-foreground">
+              Use the play button to review your recording, or download it as an
+              MP3
+            </p>
+          )}
+        </div>
+
+        {/* Hidden audio element for playback */}
+        {audioUrl && <audio ref={audioRef} src={audioUrl} className="hidden" />}
+      </div>
     </div>
   );
 }

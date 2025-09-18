@@ -5,9 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Jules Theranotes - AI-Powered Therapy Session Notes",
-  description:
-    "Streamline your therapy session note-taking with AI-powered transcription and structured data extraction",
+  title: "Jules Theranotes - Audio Recorder",
+  description: "Simple audio recording for therapy session notes",
 };
 
 export default function RootLayout({
@@ -16,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>{children}</body>
     </html>
   );
