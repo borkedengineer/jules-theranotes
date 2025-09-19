@@ -17,9 +17,9 @@ services:
     networks:
       - theranotes-network
 
-  backend:
+  transcriber:
     build:
-      context: ./backend
+      context: ./backend/services/transcriber
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
@@ -29,8 +29,41 @@ services:
       - WHISPER_MODEL_SIZE=base
       - MAX_FILE_SIZE_MB=25
     volumes:
+      - ./backend/services/transcriber:/app
+      - /app/__pycache__
+    networks:
+      - theranotes-network
+
+  notary:
+    build:
+      context: ./backend/services/notary
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONPATH=/app
+      - DEBUG=True
+    volumes:
+      - ./backend/services/notary:/app
+      - /app/__pycache__
+    networks:
+      - theranotes-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - PYTHONPATH=/app
+      - DEBUG=True
+    volumes:
       - ./backend:/app
       - /app/__pycache__
+    depends_on:
+      - transcriber
+      - notary
     networks:
       - theranotes-network
 

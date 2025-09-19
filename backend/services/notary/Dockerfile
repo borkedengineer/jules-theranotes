@@ -1,4 +1,4 @@
-# Main Backend Orchestrator Dockerfile
+# Notary Service Dockerfile
 FROM python:3.11-slim
 
 # Set environment variables
@@ -22,6 +22,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Download spaCy model
+RUN python -m spacy download en_core_web_sm
+
 # Copy project
 COPY . .
 
@@ -31,11 +34,11 @@ RUN chown -R appuser:appuser /app
 USER appuser
 
 # Expose port
-EXPOSE 8002
+EXPOSE 8001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8002/health || exit 1
+    CMD curl -f http://localhost:8001/health || exit 1
 
 # Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

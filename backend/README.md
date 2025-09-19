@@ -1,28 +1,67 @@
 # Jules Theranotes Backend
 
-FastAPI Python microservice for speech-to-text transcription using OpenAI Whisper.
+Microservices architecture for AI-powered therapy session note-taking with speech-to-text transcription and NLP data extraction.
 
 ## Features
 
 - 🎤 **Speech-to-Text**: Audio transcription using OpenAI Whisper
+- 🧠 **NLP Processing**: Extract structured data from therapy session transcripts
 - 📁 **File Upload**: Support for multiple audio formats (MP3, MP4, WAV, etc.)
 - 🔒 **Error Handling**: Comprehensive validation and error handling
 - 🚀 **FastAPI**: High-performance async API framework
-- 🐳 **Docker Ready**: Containerized deployment
+- 🐳 **Docker Ready**: Containerized microservices deployment
+
+## Architecture
+
+The backend is organized into three microservices:
+
+### **Transcriber Service** (Port 8000)
+
+- **Speech-to-Text**: OpenAI Whisper
+- **Audio Processing**: librosa, soundfile, pydub
+- **File Handling**: Python multipart uploads
+
+### **Notary Service** (Port 8001)
+
+- **NLP Processing**: spaCy for named entity recognition
+- **Text Analysis**: Regex patterns for therapy session data extraction
+- **Structured Output**: JSON format for session notes
+
+### **Main Orchestrator** (Port 8002)
+
+- **API Gateway**: Routes requests to appropriate services
+- **Service Coordination**: Combines transcription and NLP processing
+- **Client Interface**: Single endpoint for complete session processing
 
 ## Tech Stack
 
 - **Framework**: FastAPI with Uvicorn
 - **Speech-to-Text**: OpenAI Whisper
+- **NLP**: spaCy, HuggingFace Transformers
 - **Audio Processing**: librosa, soundfile, pydub
 - **File Handling**: Python multipart uploads
 - **Validation**: Pydantic models
 
 ## API Endpoints
 
-### Core Endpoints
+### Main Orchestrator (Port 8002)
 
 - `POST /api/transcribe` - Transcribe audio file to text
+- `POST /api/extract-session-data` - Extract structured data from transcript
+- `POST /api/process-session` - Complete session processing (transcribe + extract)
+- `GET /health` - Health check
+- `GET /docs` - Interactive API documentation
+
+### Transcriber Service (Port 8000)
+
+- `POST /api/transcribe` - Transcribe audio file to text
+- `GET /health` - Health check
+- `GET /docs` - Interactive API documentation
+
+### Notary Service (Port 8001)
+
+- `POST /api/extract-session-data` - Extract structured data from transcript
+- `GET /api/supported-fields` - Get supported extraction fields
 - `GET /health` - Health check
 - `GET /docs` - Interactive API documentation
 
