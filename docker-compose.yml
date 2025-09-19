@@ -12,6 +12,25 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - theranotes-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - DEBUG=True
+      - WHISPER_MODEL_SIZE=base
+      - MAX_FILE_SIZE_MB=25
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
     networks:
       - theranotes-network
 
@@ -21,3 +40,4 @@ networks:
 
 volumes:
   frontend_node_modules:
+  backend_pycache:

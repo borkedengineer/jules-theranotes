@@ -7,7 +7,7 @@ A local-first webapp for therapists to streamline session note-taking with AI-po
 This project follows a microservices architecture with clear separation of concerns:
 
 - **Frontend**: Next.js React application for audio recording and UI
-- **Backend**: FastAPI Python microservice for ML/NLP processing (to be developed)
+- **Backend**: FastAPI Python microservice for speech-to-text transcription
 - **Communication**: RESTful API between frontend and backend
 
 ## Features
@@ -16,7 +16,7 @@ This project follows a microservices architecture with clear separation of conce
 - ⏱️ **Real-time Timer**: Visual feedback during recording with timer display
 - 🎵 **Playback Controls**: Review recordings with play/pause functionality
 - 📁 **File Management**: Download recordings as MP3/MP4 audio files
-- 🔄 **AI Processing**: Speech-to-text transcription and NLP data extraction
+- 🔄 **AI Processing**: Speech-to-text transcription using OpenAI Whisper
 - 📄 **Document Generation**: Create Word/PDF documents from structured data
 - 🎨 **Modern UI**: Built with ShadCN components and Tailwind CSS
 - 📱 **Responsive Design**: Works on desktop and mobile devices
@@ -35,16 +35,18 @@ This project follows a microservices architecture with clear separation of conce
 
 - **Framework**: FastAPI with Uvicorn
 - **Speech-to-Text**: OpenAI Whisper
-- **NLP**: spaCy, HuggingFace Transformers
-- **Document Processing**: python-docx, ReportLab
-- **Audio Processing**: librosa, soundfile
+- **Audio Processing**: librosa, soundfile, pydub
+- **File Handling**: Python multipart uploads
+- **Validation**: Pydantic models
 
 ## Getting Started
 
 ### Prerequisites
 
 - **Node.js 18+** (for frontend)
+- **Python 3.11+** (for backend)
 - **npm or yarn** (for frontend)
+- **pip** (for backend)
 
 ### Quick Start
 
@@ -64,6 +66,7 @@ cd jules-theranotes
 docker-compose up --build
 
 # Access the application at: http://localhost:3000
+# Backend API at: http://localhost:8000
 ```
 
 #### Option B: Local Development
@@ -76,6 +79,7 @@ cd frontend && npm install
 cd frontend && npm run dev
 
 # Access the application at: http://localhost:3000
+# Backend API at: http://localhost:8000
 ```
 
 ### Individual Service Development
@@ -94,6 +98,8 @@ npm run dev
 cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Access API documentation at: http://localhost:8000/docs
 ```
 
 ## Project Structure
@@ -168,14 +174,14 @@ cd frontend && npm run lint
 2. **Monitor Progress**: Watch the timer and recording indicator during capture
 3. **Stop Recording**: Click "Stop Recording" when finished
 4. **Review Audio**: Use the playback controls to listen to your recording
-5. **Download**: Save the recording as a WAV file to your device
-6. **Upload**: Use the upload button to send the audio for processing (backend integration pending)
+5. **Download**: Save the recording as an MP3 file to your device
+6. **Transcribe**: Upload the audio to the backend for speech-to-text processing
 
 ## Audio Format
 
-- **Format**: WAV (16-bit PCM)
-- **Quality**: 44.1kHz sample rate with echo cancellation and noise suppression
-- **File Size**: High-quality uncompressed audio for maximum compatibility
+- **Format**: MP3/MP4 (AAC codec) - optimized for backend processing
+- **Quality**: High-quality compressed audio for efficient storage and transmission
+- **File Size**: Compressed format reduces file size while maintaining quality
 
 ## Browser Compatibility
 
@@ -216,9 +222,27 @@ jules-theranotes/
 - **Card**: Container components for organized layouts
 - **Progress**: Progress bar for upload feedback
 
+## API Endpoints
+
+### Backend API (http://localhost:8000)
+
+- `POST /api/transcribe` - Transcribe audio file to text
+- `GET /health` - Health check
+- `GET /docs` - Interactive API documentation (Swagger UI)
+
+### Example Usage
+
+```bash
+# Transcribe an audio file
+curl -X POST "http://localhost:8000/api/transcribe" \
+     -H "Content-Type: multipart/form-data" \
+     -F "audio_file=@recording.mp3"
+```
+
 ## Next Steps
 
-- [ ] Backend API integration for transcription
+- [x] Backend API for speech-to-text transcription
+- [ ] Frontend integration with backend API
 - [ ] NLP processing for structured data extraction
 - [ ] Session notes template system
 - [ ] Document generation (Word/PDF)
