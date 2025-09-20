@@ -6,7 +6,7 @@ Microservices architecture for AI-powered therapy session note-taking with speec
 
 - 🎤 **Speech-to-Text**: Audio transcription using OpenAI Whisper
 - 🧠 **NLP Processing**: Extract structured data from therapy session transcripts
-- 📁 **File Upload**: Support for multiple audio formats (MP3, MP4, WAV, etc.)
+- 📁 **File Download**: Support for multiple audio formats (MP3, MP4, WAV, etc.)
 - 🔒 **Error Handling**: Comprehensive validation and error handling
 - 🚀 **FastAPI**: High-performance async API framework
 - 🐳 **Docker Ready**: Containerized microservices deployment
